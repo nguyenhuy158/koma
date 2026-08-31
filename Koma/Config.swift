@@ -38,6 +38,11 @@ enum Knobs {
     }
 }
 
+/// Storage keys that are user data rather than settings — a reset must never clear them.
+enum Store {
+    static let history = "history"
+}
+
 /// Every number the user reads. Kept together so a skip button and its settings row
 /// can never describe the same value differently.
 enum Fmt {

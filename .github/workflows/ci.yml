@@ -26,4 +26,10 @@ jobs:
             -scheme KomaTests \
             -destination 'platform=iOS Simulator,name=iPhone 16' \
             -derivedDataPath dd \
+            -enableCodeCoverage YES \
             CODE_SIGNING_ALLOWED=NO
+
+      - name: Coverage
+        run: |
+          xcrun xccov view --report --files-for-target KomaTests.xctest \
+            "$(ls -td dd/Logs/Test/*.xcresult | head -1)"

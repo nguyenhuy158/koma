@@ -1,4 +1,6 @@
 import XCTest
+import SwiftUI
+import AVFoundation
 
 /// The logic that can be wrong without anyone noticing: number formatting the buttons
 /// depend on, the marks blob, and the transient picker. The view layer is not tested —
@@ -158,5 +160,131 @@ final class HitsTests: XCTestCase {
 
     func testEmptyAudioFindsNothing() {
         XCTAssertEqual(Hits.pick([], hop: hop, sensitivity: 2.5), [])
+    }
+}
+
+
+// MARK: - Localisation
+
+final class LangTests: XCTestCase {
+    override func setUp() {
+        super.setUp()
+        UserDefaults.standard.removeObject(forKey: Lang.key)
+        UserDefaults.standard.removeObject(forKey: Skin.key)
+    }
+    override func tearDown() {
+        UserDefaults.standard.removeObject(forKey: Lang.key)
+        UserDefaults.standard.removeObject(forKey: Skin.key)
+        super.tearDown()
+    }
+
+    func testDefaultsToEnglishAndSurvivesGarbage() {
+        XCTAssertEqual(Lang.current, .en)
+        UserDefaults.standard.set("klingon", forKey: Lang.key)
+        XCTAssertEqual(Lang.current, .en)
+    }
+
+    func testLanguageNames() {
+        XCTAssertEqual(Lang.en.name, "English")
+        XCTAssertEqual(Lang.vi.name, "Tiếng Việt")
+        XCTAssertEqual(Lang.allCases.count, 2)
+    }
+
+    func testEnglishPassesTextStraightThrough() {
+        XCTAssertEqual(L("Settings"), "Settings")
+        XCTAssertEqual(L("nothing will ever translate this"), "nothing will ever translate this")
+    }
+
+    func testVietnameseTranslatesAndFallsBackToEnglish() {
+        UserDefaults.standard.set(Lang.vi.rawValue, forKey: Lang.key)
+        XCTAssertEqual(L("Settings"), "Cài đặt")
+        // The failure mode that matters: an untranslated string must stay readable.
+        XCTAssertEqual(L("Untranslated thing"), "Untranslated thing")
+    }
+
+    /// A translation identical to its key is a copy-paste slip, not a translation.
+    func testNoVietnameseEntryIsJustTheEnglishBack() {
+        UserDefaults.standard.set(Lang.vi.rawValue, forKey: Lang.key)
+        for key in ["Settings", "Done", "Cancel", "Mark", "Speed", "Zoom", "Volume"] {
+            XCTAssertNotEqual(L(key), key, "\(key) is missing a Vietnamese translation")
+        }
+    }
+
+    func testSkinDefaultsToDarkAndSurvivesGarbage() {
+        XCTAssertEqual(Skin.current, .dark)
+        UserDefaults.standard.set("chartreuse", forKey: Skin.key)
+        XCTAssertEqual(Skin.current, .dark)
+        UserDefaults.standard.set(Skin.light.rawValue, forKey: Skin.key)
+        XCTAssertEqual(Skin.current, .light)
+    }
+
+    func testSkinColorSchemes() {
+        XCTAssertNil(Skin.system.scheme)
+        XCTAssertEqual(Skin.light.scheme, .light)
+        XCTAssertEqual(Skin.dark.scheme, .dark)
+    }
+
+    func testSkinNamesTranslate() {
+        XCTAssertEqual(Skin.system.name, "System")
+        UserDefaults.standard.set(Lang.vi.rawValue, forKey: Lang.key)
+        XCTAssertEqual(Skin.system.name, "Theo hệ thống")
+        XCTAssertEqual(Skin.light.name, "Sáng")
+        XCTAssertEqual(Skin.dark.name, "Tối")
+    }
+}
+
+// MARK: - Reading real audio
+
+final class HitsAudioTests: XCTestCase {
+    /// A two-second silent tone with one click in it, written to disk — the only way to
+    /// exercise the AVAssetReader path, and cheap enough to build per test.
+    private func clipWithClicks(at times: [Double], duration: Double = 2) throws -> AVAsset {
+        let rate = 44100.0
+        let format = AVAudioFormat(standardFormatWithSampleRate: rate, channels: 1)!
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("koma-\(times.count)-\(duration).wav")
+        try? FileManager.default.removeItem(at: url)
+
+        let file = try AVAudioFile(forWriting: url, settings: format.settings)
+        let frames = AVAudioFrameCount(rate * duration)
+        let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frames)!
+        buffer.frameLength = frames
+        let samples = buffer.floatChannelData![0]
+        for i in 0..<Int(frames) { samples[i] = 0.002 }   // near-silent room tone
+        for t in times {
+            let start = Int(t * rate)
+            for i in start..<min(start + 200, Int(frames)) { samples[i] = 0.9 }
+        }
+        try file.write(from: buffer)
+        addTeardownBlock { try? FileManager.default.removeItem(at: url) }
+        return AVURLAsset(url: url)
+    }
+
+    func testFindsTheClickInARealFile() async throws {
+        var progress: [Double] = []
+        let hits = try await Hits.find(in: clipWithClicks(at: [1.0]), sensitivity: 2.5) {
+            progress.append($0)
+        }
+        XCTAssertEqual(hits.count, 1)
+        XCTAssertEqual(try XCTUnwrap(hits.first), 1.0, accuracy: 0.05)
+        XCTAssertEqual(progress.last, 1, "progress must finish at 100%")
+        XCTAssertFalse(progress.contains { $0 > 1 })
+    }
+
+    func testFindsBothClicksAndKeepsThemInOrder() async throws {
+        let hits = try await Hits.find(in: clipWithClicks(at: [0.5, 1.5]), sensitivity: 2.5) { _ in }
+        XCTAssertEqual(hits.count, 2)
+        XCTAssertEqual(hits, hits.sorted())
+    }
+
+    func testSilenceHasNoHits() async throws {
+        let hits = try await Hits.find(in: clipWithClicks(at: []), sensitivity: 2.5) { _ in }
+        XCTAssertTrue(hits.isEmpty)
+    }
+
+    /// A video with no audio track must return nothing, not throw.
+    func testAssetWithoutAudioFindsNothing() async throws {
+        let hits = try await Hits.find(in: AVMutableComposition(), sensitivity: 2.5) { _ in }
+        XCTAssertTrue(hits.isEmpty)
     }
 }

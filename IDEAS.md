@@ -175,3 +175,9 @@ each step reveals more of the swing.
 4. **A–B loop + slow speed** — loop just the rally, at 1/8x.
 5. **Export frame** — share the exact frame as a PNG.
 6. Drawing on a frozen frame — not built yet, still discussing.
+7. **History + resume** — the next problem: I open the same rally over and over,
+   and every time I have to find it in the picker again and scrub back to where I
+   stopped. So: a list of recently opened clips, and each one remembers the frame
+   I left off at.
+   - Data: `Recent(clipID, lastTime, duration, openedAt)`, keyed by the Photos
+     local identifier like marks are. JSON blob in UserDefaults for now.

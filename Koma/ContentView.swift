@@ -28,8 +28,23 @@ struct ContentView: View {
     @State private var requestID = PHInvalidImageRequestID
     @State private var elapsed = 0
     @State private var observer: Any?
-    @State private var showSettings = false
-    @State private var showHelp = false
+    // One sheet, not three: stacking .sheet modifiers on the same view means only the
+    // last one ever presents, which is why Settings and Help did nothing.
+    @State private var sheet: Sheet?
+    @State private var showVolume = false
+    @Environment(\.scenePhase) private var scenePhase
+
+    enum Sheet: Identifiable {
+        case help, settings, history, share(UIImage)
+        var id: Int {
+            switch self {
+            case .help: return 0
+            case .settings: return 1
+            case .history: return 2
+            case .share: return 3
+            }
+        }
+    }
     @State private var clipID = ""
     @State private var marks: [Double] = []
     @State private var hits: [Double] = []
@@ -43,7 +58,6 @@ struct ContentView: View {
     @State private var ghosts: [UIImage] = []
     @State private var ghostTask: Task<Void, Never>?
     @State private var generator: AVAssetImageGenerator?
-    @State private var shareImage: UIImage?
 
     // Court footage varies too much for fixed values. Defaults live in Knobs, once.
     @AppStorage(Knobs.ptsPerFrame.key) private var ptsPerFrame = Knobs.ptsPerFrame.def
@@ -57,6 +71,7 @@ struct ContentView: View {
     @AppStorage(Knobs.keepAwake.key)   private var keepAwake   = Knobs.keepAwake.def
     @AppStorage(Knobs.marksStore.key)  private var marksStore  = Knobs.marksStore.def
     @AppStorage(Knobs.volume.key)      private var volume      = Knobs.volume.def
+    @AppStorage(Store.history)         private var history     = "[]"
     // Read so the whole screen re-renders when either is changed in Settings.
     @AppStorage(Lang.key)              private var lang        = Lang.en.rawValue
     @AppStorage(Skin.key)              private var skin        = Skin.dark.rawValue
@@ -68,7 +83,7 @@ struct ContentView: View {
     var body: some View {
         VStack(spacing: 0) {
             video
-            if loaded { readout; timeline }
+            if loaded { readout; if showVolume { volumeRow }; timeline }
             controls
         }
         .background(Color(.systemBackground))
@@ -79,16 +94,19 @@ struct ContentView: View {
         // Single-param form: the iOS 17 two-param onChange would break our 16.0 target.
         .onChange(of: pick) { new in
             loadTask?.cancel()
-            loadTask = Task { await load(new) }
+            loadTask = Task { await load(new?.itemIdentifier ?? "") }
         }
-        .onReceive(player.publisher(for: \.rate)) { rate = $0 }
+        .onReceive(player.publisher(for: \.rate)) { rate = $0; if $0 == 0 { remember() } }
+        .onChange(of: scenePhase) { if $0 != .active { remember() } }
         .onChange(of: keepAwake) { UIApplication.shared.isIdleTimerDisabled = $0 }
         .onChange(of: volume) { player.volume = Float($0) }
-        .sheet(isPresented: $showSettings) { SettingsView() }
-        .sheet(isPresented: $showHelp) { HelpView() }
-        .sheet(isPresented: Binding(get: { shareImage != nil },
-                                    set: { if !$0 { shareImage = nil } })) {
-            if let img = shareImage { ActivityView(items: [img]) }
+        .sheet(item: $sheet) { which in
+            switch which {
+            case .help:          HelpView()
+            case .settings:      SettingsView()
+            case .history:       HistoryView { id in loadTask = Task { await load(id) } }
+            case .share(let im): ActivityView(items: [im])
+            }
         }
         .onChange(of: current) { _ in scheduleGhosts() }
         .onChange(of: onion) { _ in scheduleGhosts() }
@@ -96,8 +114,9 @@ struct ContentView: View {
 
     private var gear: some View {
         HStack(spacing: 14) {
-            Button { showHelp = true } label: { Image(systemName: "questionmark.circle") }
-            Button { showSettings = true } label: { Image(systemName: "slider.horizontal.3") }
+            Button { sheet = .history } label: { Image(systemName: "clock.arrow.circlepath") }
+            Button { sheet = .help } label: { Image(systemName: "questionmark.circle") }
+            Button { sheet = .settings } label: { Image(systemName: "slider.horizontal.3") }
         }
     }
 
@@ -114,7 +133,11 @@ struct ContentView: View {
                 .contentShape(Rectangle())
                 .gesture(SimultaneousGesture(pinch(geo.size), drag(geo.size)))
                 // Only ever covers an empty screen — a stuck flag must never hide a loaded video.
+                .opacity(loaded ? 1 : 0)
                 .overlay { if !loaded { loading ? AnyView(loadingState) : AnyView(emptyState) } }
+                // Floats over the video instead of taking a row: a control block that
+                // appears on zoom pushes every button under it and you lose your place.
+                .overlay(alignment: .topTrailing) { if loaded && zoom > 1 { zoomTools } }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
@@ -133,15 +156,15 @@ struct ContentView: View {
 
     private var loadingState: some View {
         VStack(spacing: 10) {
-            ProgressView().tint(.white).scaleEffect(1.4)
+            ProgressView().scaleEffect(1.4)
             if elapsed > 0 { Text("\(elapsed)s").font(.caption.monospacedDigit())
-                .foregroundStyle(.white.opacity(0.4)) }
+                .foregroundStyle(.secondary) }
             // Big slo-mo clips live in iCloud; without a number this looks like a hang.
             // progressHandler only fires for an iCloud download, so a number means exactly that.
             Text(progress > 0 ? "iCloud \(Int(progress * 100))%" : L("Opening…"))
-                .font(.footnote.monospacedDigit()).foregroundStyle(.white.opacity(0.6))
+                .font(.footnote.monospacedDigit()).foregroundStyle(.secondary)
             Button(L("Cancel"), role: .cancel) { cancelLoad() }
-                .buttonStyle(.bordered).tint(.white).padding(.top, 4)
+                .buttonStyle(.bordered).tint(.primary).padding(.top, 4)
         }
     }
 
@@ -164,7 +187,7 @@ struct ContentView: View {
                 .multilineTextAlignment(.center)
             gear.font(.title3).padding(.top, 8)
         }
-        .foregroundStyle(.white.opacity(0.75))
+        .foregroundStyle(.secondary)
         .padding(32)
     }
 
@@ -179,10 +202,10 @@ struct ContentView: View {
             Text(verbatim: "f\(frameIndex)").foregroundStyle(.orange)
             Text(verbatim: "\(Int(fps.rounded()))fps").foregroundStyle(.secondary)
             // The hit sound is half the review, so muting needs to be one tap away.
-            Button { volume = volume > 0 ? 0 : 1 } label: {
+            Button { showVolume.toggle() } label: {
                 Image(systemName: volume > 0 ? "speaker.wave.2.fill" : "speaker.slash.fill")
             }
-            .foregroundStyle(volume > 0 ? Color.primary : .orange)
+            .foregroundStyle(showVolume || volume == 0 ? Color.orange : .primary)
             picker { Image(systemName: "film") }
             gear
         }
@@ -191,6 +214,44 @@ struct ContentView: View {
         .foregroundStyle(.primary)
         .padding(.horizontal, 20)
         .padding(.top, 10)
+    }
+
+    private var zoomTools: some View {
+        HStack(spacing: 6) {
+            Button { locked.toggle() } label: {
+                Image(systemName: locked ? "lock.fill" : "lock.open")
+            }
+            .tint(locked ? .orange : .white)
+
+            Button(String(format: "%.1f×", zoom)) {
+                zoom = 1; zoomBase = 1; pan = .zero; panBase = .zero; locked = false
+            }
+            .tint(.white)
+        }
+        .font(.caption.monospacedDigit().weight(.medium))
+        .buttonStyle(.bordered)
+        .padding(.horizontal, 4)
+        .padding(.vertical, 2)
+        .background(.black.opacity(0.45), in: Capsule())
+        .padding(10)
+    }
+
+    /// The readout row has no width left for a slider, so it lives one tap away
+    /// instead of buried in Settings — the level changes per clip, not per app.
+    private var volumeRow: some View {
+        HStack(spacing: 10) {
+            Button { volume = volume > 0 ? 0 : 1 } label: {
+                Image(systemName: volume > 0 ? "speaker.fill" : "speaker.slash.fill")
+                    .frame(width: 22)
+            }
+            Slider(value: $volume, in: 0...1).tint(.orange)
+            Text(verbatim: "\(Int(volume * 100))%")
+                .font(.caption.monospacedDigit())
+                .foregroundStyle(.secondary)
+                .frame(width: 42, alignment: .trailing)
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 6)
     }
 
     private var timeline: some View {
@@ -244,26 +305,6 @@ struct ContentView: View {
                     .buttonStyle(.borderedProminent)
                     .tint(.orange)
                     stepButton("forward.frame.fill", 1)
-                }
-
-                // Only earns its row once you're zoomed — at 1x drag already scrubs.
-                if zoom > 1 {
-                    HStack(spacing: 8) {
-                        Button { locked.toggle() } label: {
-                            Label(L(locked ? "Locked" : "Lock area"),
-                                  systemImage: locked ? "lock.fill" : "lock.open")
-                                .frame(maxWidth: .infinity, minHeight: 34)
-                        }
-                        .tint(locked ? .orange : .primary)
-
-                        Button(String(format: "%.1f× %@", zoom, L("reset"))) {
-                            zoom = 1; zoomBase = 1; pan = .zero; panBase = .zero; locked = false
-                        }
-                        .frame(maxWidth: .infinity, minHeight: 34)
-                        .tint(.primary)
-                    }
-                    .font(.footnote.monospacedDigit().weight(.medium))
-                    .buttonStyle(.bordered)
                 }
 
                 HStack(spacing: 6) {
@@ -372,6 +413,14 @@ struct ContentView: View {
         else { loopA = nil; loopB = nil }
     }
 
+    /// Writes on pause, on background, and on clip switch — not on every tick, which
+    /// would be 60 UserDefaults writes a second.
+    private func remember() {
+        guard loaded, !clipID.isEmpty, duration > 0 else { return }
+        history = HistoryStore.record(clipID, at: current, duration: duration,
+                                      openedAt: Date().timeIntervalSince1970, in: history)
+    }
+
     private func loadMarks() { marks = MarkStore.marks(for: clipID, in: marksStore) }
 
     private func saveMarks() { marksStore = MarkStore.setting(marks, for: clipID, in: marksStore) }
@@ -402,7 +451,7 @@ struct ContentView: View {
     private func exportFrame() async {
         guard let gen = generator else { return }
         let at = CMTime(seconds: current, preferredTimescale: 600)
-        if let cg = try? await gen.image(at: at).image { shareImage = UIImage(cgImage: cg) }
+        if let cg = try? await gen.image(at: at).image { sheet = .share(UIImage(cgImage: cg)) }
     }
 
     private func detectHits() {
@@ -535,10 +584,12 @@ struct ContentView: View {
         }
     }
 
-    private func load(_ item: PhotosPickerItem?) async {
-        guard let item else { return }
+    /// Takes a Photos local identifier, so the picker and the history list share one path.
+    private func load(_ id: String) async {
+        guard !id.isEmpty else { return }
         // A previous request left running is the thing that made the next open never arrive.
         cancelLoad()
+        remember()
 
         // Clear the old clip first — leaving it up made a slow open look like nothing happened.
         player.pause()
@@ -559,7 +610,7 @@ struct ContentView: View {
         }
         defer { ticker.cancel(); loading = false }
         do {
-            let asset = try await open(item)
+            let asset = try await open(id)
             // Show the first frame immediately; the readout can fill in a beat later.
             player.replaceCurrentItem(with: AVPlayerItem(asset: asset))
             fps = 30
@@ -575,13 +626,19 @@ struct ContentView: View {
             gen.maximumSize = CGSize(width: 1280, height: 1280)
             generator = gen
 
-            clipID = item.itemIdentifier ?? ""
+            clipID = id
             loadMarks()
 
             async let dur = asset.load(.duration)
             async let track = asset.loadTracks(withMediaType: .video).first
             duration = try await dur.seconds
             if let r = try await track?.load(.nominalFrameRate), r > 0 { fps = Double(r) }
+
+            // Pick up where I stopped. Not within a second of either end — resuming onto
+            // the last frame just means scrubbing all the way back.
+            let was = HistoryStore.position(for: id, in: history)
+            if was > 1, was < duration - 1 { seek(to: was) }
+            remember()
         } catch {
             // 3072 is PHPhotosError.userCancelled — that's a choice, not a failure.
             let ns = error as NSError
@@ -592,10 +649,9 @@ struct ContentView: View {
 
     /// Read the video straight out of the library. loadTransferable duplicates the whole
     /// file first, which on a multi-GB 240fps clip looks exactly like a hang.
-    private func open(_ item: PhotosPickerItem) async throws -> AVAsset {
+    private func open(_ id: String) async throws -> AVAsset {
         await askPhotos()
-        guard let id = item.itemIdentifier,
-              let ph = PHAsset.fetchAssets(withLocalIdentifiers: [id], options: nil).firstObject else {
+        guard let ph = PHAsset.fetchAssets(withLocalIdentifiers: [id], options: nil).firstObject else {
             throw NSError(domain: "Koma", code: 1, userInfo: [NSLocalizedDescriptionKey:
                 L("Allow Photos access in Settings — Koma reads videos in place instead of copying them.")])
         }
