@@ -1,0 +1,35 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  ipa:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      # Unsigned archive — no Apple certs in CI. Sideloadly / AltStore re-signs
+      # with your own free Apple ID, same as installing from this machine.
+      - name: Build
+        run: |
+          xcodebuild archive \
+            -scheme Koma \
+            -destination 'generic/platform=iOS' \
+            -archivePath dd/Koma.xcarchive \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
+
+      - name: Package .ipa
+        run: |
+          mkdir -p Payload
+          cp -R dd/Koma.xcarchive/Products/Applications/Koma.app Payload/
+          zip -qry Koma-${GITHUB_REF_NAME}.ipa Payload
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: Koma-*.ipa
+          generate_release_notes: true
