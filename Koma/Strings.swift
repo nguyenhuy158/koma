@@ -56,6 +56,9 @@ private let vietnamese: [String: String] = [
     // Controls
     "Close video": "Đóng video",
     "Play hits only": "Chỉ phát pha có cú đánh",
+    "Mute voices": "Tắt tiếng người nói",
+    "No voices found — lower Voice confidence in Settings.":
+        "Không tìm thấy tiếng nói — giảm Độ tin cậy giọng nói trong Cài đặt.",
     "Locked": "Đã khoá",
     "Lock area": "Khoá vùng",
     "reset": "đặt lại",

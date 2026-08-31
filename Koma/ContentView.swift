@@ -36,6 +36,9 @@ struct ContentView: View {
     @State private var reeling = false
     @State private var reelProgress = 0.0
     @State private var hitsOnly = false
+    @State private var muteVoices = false
+    @State private var muting = false
+    @State private var muteTask: Task<Void, Never>?
     @Environment(\.scenePhase) private var scenePhase
 
     enum Sheet: Identifiable {
@@ -433,13 +436,22 @@ struct ContentView: View {
                                 Image(systemName: hitsOnly ? "checkmark" : "forward.end.alt.fill")
                             }
                         }
+                        Button {
+                            toggleMuteVoices()
+                        } label: {
+                            Label(L("Mute voices"),
+                                  systemImage: muteVoices ? "checkmark" : "person.wave.2.fill")
+                        }
                         Button(L("Find hits again"), systemImage: "waveform") { detectHits() }
                         Button(L("Clear hits"), systemImage: "xmark", role: .destructive) { hits = []; hitsOnly = false }
                     } label: {
-                        Text(verbatim: "\(hits.count) \(L("hits"))")
-                            .frame(maxWidth: .infinity, minHeight: 34)
+                        Group {
+                            if muting { ProgressView().controlSize(.small) }
+                            else { Text(verbatim: "\(hits.count) \(L("hits"))") }
+                        }
+                        .frame(maxWidth: .infinity, minHeight: 34)
                     }
-                    .tint(hitsOnly ? .orange : .cyan)
+                    .tint(hitsOnly || muteVoices ? .orange : .cyan)
                 }
 
                 tool("square.and.arrow.up", .primary) { Task { await exportFrame() } }
@@ -560,6 +572,39 @@ struct ContentView: View {
         guard let gen = generator else { return }
         let at = CMTime(seconds: current, preferredTimescale: 600)
         if let cg = try? await gen.image(at: at).image { sheet = .share([UIImage(cgImage: cg)]) }
+    }
+
+    /// Silences the talking and leaves the court alone. The classifier already runs for
+    /// the hit veto — this keeps its spans instead of throwing them away.
+    private func toggleMuteVoices() {
+        guard let asset = player.currentItem?.asset else { return }
+        muteVoices.toggle()
+        guard muteVoices else {
+            muteTask?.cancel(); muting = false
+            player.currentItem?.audioMix = nil
+            return
+        }
+        let conf = voiceConf
+        muting = true
+        muteTask = Task { @MainActor in
+            let spans = await Voice.spans(in: asset, confidence: conf)
+            guard !Task.isCancelled, muteVoices else { muting = false; return }
+            let track = try? await asset.loadTracks(withMediaType: .audio).first
+            guard !Task.isCancelled, muteVoices, let track = track ?? nil else {
+                muting = false; return
+            }
+            // Say so rather than sitting there looking switched on — a silent no-op here
+            // is indistinguishable from a broken filter, which is exactly how this
+            // shipped the first time.
+            guard let mix = Voice.mix(muting: spans, on: track) else {
+                muteVoices = false; muting = false
+                problem = L("No voices found — lower Voice confidence in Settings.")
+                return
+            }
+            player.currentItem?.audioMix = mix
+            muting = false
+            if haptics { UINotificationFeedbackGenerator().notificationOccurred(.success) }
+        }
     }
 
     private func detectHits() {
@@ -764,6 +809,7 @@ struct ContentView: View {
         hits = []; ghosts = []; poseImage = nil; loopA = nil; loopB = nil
         analyzing = false; generator = nil
         hitsOnly = false
+        muteTask?.cancel(); muteVoices = false; muting = false
         marks = []
         clipID = ""
     }
