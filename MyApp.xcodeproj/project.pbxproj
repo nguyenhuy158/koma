@@ -1,0 +1,90 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	objectVersion = 56;
+	objects = {
+
+		A1000001 /* MyAppApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000011; };
+		A1000002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000012; };
+
+		A1000011 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MyAppApp.swift; sourceTree = "<group>"; };
+		A1000012 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		A1000013 /* MyApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MyApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
+
+		A1000020 /* Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+		A1000021 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A1000001, A1000002); runOnlyForDeploymentPostprocessing = 0; };
+		A1000022 /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+
+		A1000030 = {isa = PBXGroup; children = (A1000031, A1000032); sourceTree = "<group>"; };
+		A1000031 /* MyApp */ = {isa = PBXGroup; children = (A1000011, A1000012); path = MyApp; sourceTree = "<group>"; };
+		A1000032 /* Products */ = {isa = PBXGroup; children = (A1000013); name = Products; sourceTree = "<group>"; };
+
+		A1000040 /* MyApp */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A1000051;
+			buildPhases = (A1000021, A1000020, A1000022);
+			dependencies = ();
+			name = MyApp;
+			productName = MyApp;
+			productReference = A1000013;
+			productType = "com.apple.product-type.application";
+		};
+
+		A1000041 /* Project object */ = {
+			isa = PBXProject;
+			attributes = { BuildIndependentTargetsInParallel = 1; LastUpgradeCheck = 1540; };
+			buildConfigurationList = A1000050;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (en, Base);
+			mainGroup = A1000030;
+			productRefGroup = A1000032;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (A1000040);
+		};
+
+		A1000050 = {isa = XCConfigurationList; buildConfigurations = (A1000060, A1000061); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+		A1000051 = {isa = XCConfigurationList; buildConfigurations = (A1000062, A1000063); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+
+		A1000060 /* Debug */ = {isa = XCBuildConfiguration; buildSettings = {
+			CLANG_ENABLE_MODULES = YES;
+			IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+			ONLY_ACTIVE_ARCH = YES;
+			SDKROOT = iphoneos;
+			SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			SWIFT_VERSION = 5.0;
+		}; name = Debug; };
+		A1000061 /* Release */ = {isa = XCBuildConfiguration; buildSettings = {
+			CLANG_ENABLE_MODULES = YES;
+			IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+			SDKROOT = iphoneos;
+			SWIFT_VERSION = 5.0;
+			VALIDATE_PRODUCT = YES;
+		}; name = Release; };
+		A1000062 /* Debug */ = {isa = XCBuildConfiguration; buildSettings = {
+			ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+			CODE_SIGN_STYLE = Automatic;
+			GENERATE_INFOPLIST_FILE = YES;
+			INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+			INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+			PRODUCT_BUNDLE_IDENTIFIER = local.myapp;
+			PRODUCT_NAME = MyApp;
+			SWIFT_EMIT_LOC_STRINGS = YES;
+			TARGETED_DEVICE_FAMILY = "1,2";
+		}; name = Debug; };
+		A1000063 /* Release */ = {isa = XCBuildConfiguration; buildSettings = {
+			ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+			CODE_SIGN_STYLE = Automatic;
+			GENERATE_INFOPLIST_FILE = YES;
+			INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+			INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+			PRODUCT_BUNDLE_IDENTIFIER = local.myapp;
+			PRODUCT_NAME = MyApp;
+			SWIFT_EMIT_LOC_STRINGS = YES;
+			TARGETED_DEVICE_FAMILY = "1,2";
+		}; name = Release; };
+	};
+	rootObject = A1000041;
+}
