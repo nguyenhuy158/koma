@@ -200,6 +200,8 @@ detection that already exists, so together they are less code than e alone.
 | C1-j | Spectral + decay filter | ★☆☆ | hit detection |
 | C1-k | Custom Create ML sound classifier | ★★☆ | C1-i |
 | C1-l | Shuttle trajectory detection (Vision) | ★★★ | — |
+| C1-m | Shuttle tracking (tap to track) | ★★☆ | — |
+| C1-n | Skeleton while playing ← building now | ★☆☆ | skeleton |
 | C1-a | Auto-slow at each hit | ★☆☆ | hit detection |
 | C1-b | Contact sheet | ★☆☆ | frame export |
 | C1-c | Rally list | ★☆☆ | hit detection |
@@ -274,6 +276,44 @@ patch to the audio path.
   shuttle at this distance is a few pixels, motion-blurred at 60fps, and the camera moves.
 - Verdict: **not worth building** without a tripod and a much closer/faster camera.
   Revisit only with 240fps on a fixed mount.
+
+### C1-m — Shuttle tracking (tap to track)
+**Problem:** C1-l failed because `VNDetectTrajectoriesRequest` has to *find* the shuttle
+itself, and at this distance it is a few blurred pixels — it locked onto limbs and shirts.
+**Do:** don't make it search. Drag a box over the shuttle on one frame, then
+`VNTrackObjectRequest` + `VNSequenceRequestHandler` carries that box forward frame by
+frame. Draw the path it walks. Same Vision framework, but the hard half — detection — is
+done by hand, once.
+**Risk:** the tracker is built for objects that keep their appearance. A shuttle changes
+shape, blurs, and crosses a busy background. Expect it to drift off after a handful of
+frames. **Bench it against the video before writing any UI** — that is the whole lesson
+of C1-l.
+
+**Measured on IMG_4382.MOV, rally at ~121s — result: does not work, for two reasons.**
+- **There is nothing to tap.** At full 1080p and again at 2.2× zoom over mid-court and
+  over the net band, at six timestamps through a live rally, the shuttle is not visible
+  at all. A three-frame brightness differencer (bright in frame N, absent in N−1 and N+1,
+  blobs capped at 400px) over the whole court finds exactly one small fast bright object
+  and it is the **racket head**, not the shuttle. If I cannot find it in a still at 2.2×,
+  the user cannot drag a box over it on a phone.
+- **The tracker drifts and lies about it.** Seeded on the racket head (26×20px, conf 1.0),
+  `VNTrackObjectRequest` at `.accurate` slid off within ~12 frames and then sat frozen at
+  (656,1034) for six straight frames — parked on a court line — while reporting
+  **confidence 0.68–0.78 the whole time**. Confidence never dropped, so there is no
+  threshold that detects the failure. A silent wrong answer is worse than no answer.
+- Verdict: **not worth building.** Same root cause as C1-l — the shuttle is a few blurred
+  pixels at this camera distance. Revisit only with the camera much closer or at 240fps.
+
+### C1-n — Skeleton while playing ← building now
+**Problem:** the skeleton only draws on a paused frame. Watching a swing at 0.25× I
+still see no joints, which is exactly when I want them.
+**Do:** an opt-in toggle, off by default. Added, not replacing — paused behaviour is
+untouched. Vision costs ~27ms a frame and the video runs at 60fps, so it cannot keep up;
+the honest design is to let one pass finish and skip every frame that arrives meanwhile,
+rather than cancel each pass before it completes and draw nothing at all. The skeleton
+lags the picture and updates a few times a second. Whoever turns it on is accepting that.
+**Not doing:** precomputing a window around the playhead into a cache. More code, more
+memory, and a wait before playback starts — revisit only if the lag is unusable.
 
 ### C1-a — Auto-slow at each hit
 **Problem:** to watch a rally properly I have to keep changing speed by hand —
