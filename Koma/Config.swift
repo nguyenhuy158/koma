@@ -22,7 +22,10 @@ enum Knobs {
     static let volume      = Knob(key: "volume",      def: 1,   range: 0...1,     step: 0.05)
     static let reelBefore  = Knob(key: "reelBefore",  def: 0.5, range: 0.1...3,   step: 0.1)
     static let reelAfter   = Knob(key: "reelAfter",   def: 1.0, range: 0.2...5,   step: 0.1)
-    static let voiceConf   = Knob(key: "voiceConf",   def: 0.6, range: 0.3...0.95, step: 0.05)
+    // 0.25 measured on a real 14-min hall recording: catches 98% of the windows the
+    // classifier calls speech outright, at the cost of muting ~60% of the clip —
+    // in a hall someone is talking under most rallies, so that number is honest.
+    static let voiceConf   = Knob(key: "voiceConf",   def: 0.25, range: 0.05...0.9, step: 0.05)
 
     static let all = [ptsPerFrame, holdRate, smallSeek, bigSeek, hugeSeek, onionCount, hitSense, volume, reelBefore, reelAfter, voiceConf]
 
