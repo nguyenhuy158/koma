@@ -54,6 +54,8 @@ private let vietnamese: [String: String] = [
     "Couldn't read that video.": "Không đọc được video đó.",
 
     // Controls
+    "Close video": "Đóng video",
+    "Play hits only": "Chỉ phát pha có cú đánh",
     "Locked": "Đã khoá",
     "Lock area": "Khoá vùng",
     "reset": "đặt lại",
@@ -61,6 +63,28 @@ private let vietnamese: [String: String] = [
     "Set B": "Đặt B",
     "A–B on": "A–B bật",
     "hits": "cú đánh",
+
+    // History
+    "Recent": "Gần đây",
+    "Nothing opened yet.": "Chưa mở clip nào.",
+    "See all": "Xem tất cả",
+    "History": "Lịch sử",
+    "Every clip you open is listed here with where you stopped. Tap one to reopen it at that frame; swipe to remove it.":
+        "Mọi clip đã mở đều nằm ở đây kèm chỗ đã xem tới. Chạm để mở lại đúng khung đó; vuốt để xoá.",
+
+    // Hits-only video
+    "Hits-only video": "Video chỉ có cú đánh",
+    "Find hits again": "Dò lại cú đánh",
+    "Clear hits": "Xoá các cú đánh",
+    "Before each hit": "Trước mỗi cú đánh",
+    "After each hit": "Sau mỗi cú đánh",
+    "How much of the clip to keep around each hit. Windows that overlap are joined, so a fast exchange stays in one piece.":
+        "Giữ lại bao nhiêu quanh mỗi cú đánh. Các đoạn chồng nhau sẽ được nối lại, nên một pha giao tranh nhanh vẫn liền mạch.",
+    "That clip has no video track.": "Clip này không có luồng video.",
+    "Couldn't start the export.": "Không khởi động được việc xuất video.",
+    "Export failed.": "Xuất video thất bại.",
+    "Cuts every detected hit into one new clip, back to back — a 20-minute session becomes the shots only. Length of each piece is in Settings.":
+        "Cắt mọi cú đánh đã dò được thành một clip mới, nối liên tiếp — buổi tập 20 phút chỉ còn các cú đánh. Độ dài mỗi đoạn chỉnh trong Cài đặt.",
 
     // Settings
     "Settings": "Cài đặt",
@@ -127,4 +151,11 @@ private let vietnamese: [String: String] = [
         "Chụm hai ngón để phóng, kéo để di chuyển. Nút hiện ra khi đã phóng to.",
     "Freezes the zoom so dragging scrubs time instead of moving the picture.":
         "Khoá vùng phóng, để kéo là tua thời gian chứ không xê dịch hình.",
+    "Ignore voices": "Bỏ qua tiếng người",
+    "Voice confidence": "Độ tin tiếng người",
+    "Ignore voices runs a second pass that drops hits landing on speech or laughter. It can also drop a real hit if someone shouts during the rally — raise the confidence if that happens.":
+        "Bỏ qua tiếng người chạy thêm một lượt nữa, loại các cú đánh rơi vào tiếng nói hay tiếng cười. Nó cũng có thể loại nhầm cú đánh thật nếu có người hét trong pha cầu — khi đó tăng độ tin lên.",
+    "Skeleton": "Khung xương",
+    "Draws the body joints on the frozen frame — shoulder, elbow, wrist at the moment of contact. Only while paused.":
+        "Vẽ các khớp lên khung hình đang dừng — vai, khuỷu, cổ tay ngay lúc chạm cầu. Chỉ hiện khi đang tạm dừng.",
 ]

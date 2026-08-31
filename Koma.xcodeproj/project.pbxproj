@@ -17,6 +17,9 @@
 		A100000A = {isa = PBXBuildFile; fileRef = A100010A; };
 		A100000B = {isa = PBXBuildFile; fileRef = A100010C; };
 		A100000C = {isa = PBXBuildFile; fileRef = A100010D; };
+		A100000D = {isa = PBXBuildFile; fileRef = A100010E; };
+		A100000E = {isa = PBXBuildFile; fileRef = A100010F; };
+		A100000F = {isa = PBXBuildFile; fileRef = A1000110; };
 
 /* Test sources — the pure files compile into the test bundle, so no TEST_HOST is needed. */
 		A1000201 = {isa = PBXBuildFile; fileRef = A100010B; };
@@ -25,6 +28,7 @@
 		A1000204 = {isa = PBXBuildFile; fileRef = A1000105; };
 		A1000205 = {isa = PBXBuildFile; fileRef = A1000109; };
 		A1000206 = {isa = PBXBuildFile; fileRef = A100010C; };
+		A1000207 = {isa = PBXBuildFile; fileRef = A100010E; };
 
 		A1000101 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KomaApp.swift; sourceTree = "<group>"; };
 		A1000102 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -39,18 +43,21 @@
 		A100010B = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KomaTests.swift; sourceTree = "<group>"; };
 		A100010C = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = History.swift; sourceTree = "<group>"; };
 		A100010D = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryView.swift; sourceTree = "<group>"; };
+		A100010E = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Reel.swift; sourceTree = "<group>"; };
+		A100010F = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Voice.swift; sourceTree = "<group>"; };
+		A1000110 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Pose.swift; sourceTree = "<group>"; };
 
 		A1000013 /* Koma.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Koma.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A1000014 /* KomaTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = KomaTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 
 		A1000020 /* Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
-		A1000021 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A1000001, A1000002, A1000003, A1000004, A1000005, A1000006, A1000007, A1000008, A1000009, A100000B, A100000C); runOnlyForDeploymentPostprocessing = 0; };
+		A1000021 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A1000001, A1000002, A1000003, A1000004, A1000005, A1000006, A1000007, A1000008, A1000009, A100000B, A100000C, A100000D, A100000E, A100000F); runOnlyForDeploymentPostprocessing = 0; };
 		A1000022 /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (A100000A); runOnlyForDeploymentPostprocessing = 0; };
 		A1000023 /* Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
-		A1000024 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A1000201, A1000202, A1000203, A1000204, A1000205, A1000206); runOnlyForDeploymentPostprocessing = 0; };
+		A1000024 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A1000201, A1000202, A1000203, A1000204, A1000205, A1000206, A1000207); runOnlyForDeploymentPostprocessing = 0; };
 
 		A1000030 = {isa = PBXGroup; children = (A1000031, A1000033, A1000032); sourceTree = "<group>"; };
-		A1000031 /* Koma */ = {isa = PBXGroup; children = (A1000101, A1000102, A1000103, A1000104, A1000105, A1000106, A1000107, A1000108, A1000109, A100010C, A100010D, A100010A); path = Koma; sourceTree = "<group>"; };
+		A1000031 /* Koma */ = {isa = PBXGroup; children = (A1000101, A1000102, A1000103, A1000104, A1000105, A1000106, A1000107, A1000108, A1000109, A100010C, A100010D, A100010E, A100010F, A1000110, A100010A); path = Koma; sourceTree = "<group>"; };
 		A1000032 /* Products */ = {isa = PBXGroup; children = (A1000013, A1000014); name = Products; sourceTree = "<group>"; };
 		A1000033 /* KomaTests */ = {isa = PBXGroup; children = (A100010B); path = KomaTests; sourceTree = "<group>"; };
 

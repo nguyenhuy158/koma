@@ -288,3 +288,110 @@ final class HitsAudioTests: XCTestCase {
         XCTAssertTrue(hits.isEmpty)
     }
 }
+
+// MARK: - History
+
+final class HistoryStoreTests: XCTestCase {
+    func testRecordsNewestFirstAndUpdatesInPlace() {
+        var json = "[]"
+        json = HistoryStore.record("a", at: 5, duration: 60, openedAt: 1, in: json)
+        json = HistoryStore.record("b", at: 7, duration: 60, openedAt: 2, in: json)
+        json = HistoryStore.record("a", at: 9, duration: 60, openedAt: 3, in: json)
+
+        let list = HistoryStore.decode(json)
+        XCTAssertEqual(list.map(\.id), ["a", "b"])          // reopened clip moves to the top
+        XCTAssertEqual(list.count, 2)                        // and does not duplicate
+        XCTAssertEqual(HistoryStore.position(for: "a", in: json), 9)
+    }
+
+    /// Without an identifier every clip would share one row and overwrite each other.
+    func testEmptyIdIsNotRecorded() {
+        let json = HistoryStore.record("", at: 5, duration: 60, openedAt: 1, in: "[]")
+        XCTAssertTrue(HistoryStore.decode(json).isEmpty)
+    }
+
+    func testKeepsOnlyTheMostRecent() {
+        var json = "[]"
+        for i in 0..<(HistoryStore.limit + 5) {
+            json = HistoryStore.record("clip\(i)", at: 1, duration: 60, openedAt: Double(i), in: json)
+        }
+        let list = HistoryStore.decode(json)
+        XCTAssertEqual(list.count, HistoryStore.limit)
+        XCTAssertEqual(list.first?.id, "clip\(HistoryStore.limit + 4)")
+    }
+
+    func testUnknownClipHasNoPosition() {
+        XCTAssertEqual(HistoryStore.position(for: "nope", in: "[]"), 0)
+    }
+
+    func testRemove() {
+        let json = HistoryStore.record("a", at: 5, duration: 60, openedAt: 1, in: "[]")
+        XCTAssertTrue(HistoryStore.decode(HistoryStore.remove("a", in: json)).isEmpty)
+    }
+}
+
+// MARK: - Hits-only video
+
+final class ReelTests: XCTestCase {
+    private func ranges(_ hits: [Double], before: Double = 0.5, after: Double = 1,
+                        duration: Double = 100) -> [(start: Double, end: Double)] {
+        Reel.ranges(hits: hits, before: before, after: after, duration: duration)
+    }
+
+    func testOneWindowPerIsolatedHit() {
+        let r = ranges([10, 50])
+        XCTAssertEqual(r.count, 2)
+        XCTAssertEqual(r[0].start, 9.5)
+        XCTAssertEqual(r[0].end, 11)
+    }
+
+    /// A fast exchange must come out as one continuous piece, not a stutter of cuts.
+    func testOverlappingWindowsMerge() {
+        let r = ranges([10, 10.4, 10.9])
+        XCTAssertEqual(r.count, 1)
+        XCTAssertEqual(r[0].start, 9.5)
+        XCTAssertEqual(r[0].end, 11.9)
+    }
+
+    func testClampsToTheClip() {
+        let r = ranges([0.1, 99.9], duration: 100)
+        XCTAssertEqual(r[0].start, 0)
+        XCTAssertEqual(r[1].end, 100)
+    }
+
+    func testUnsortedHitsStillProduceOrderedRanges() {
+        let r = ranges([50, 10, 30])
+        XCTAssertEqual(r.map(\.start), [9.5, 29.5, 49.5])
+    }
+
+    func testNoHitsNoRanges() {
+        XCTAssertTrue(ranges([]).isEmpty)
+    }
+
+    func testStepKeepsPlayingInsideAWindow() {
+        let r = ranges([10, 50])
+        XCTAssertEqual(Reel.step(at: 10.2, in: r), .keepPlaying)
+        XCTAssertEqual(Reel.step(at: 9.5, in: r), .keepPlaying)
+    }
+
+    func testStepJumpsOverTheDeadTime() {
+        XCTAssertEqual(Reel.step(at: 20, in: ranges([10, 50])), .seek(49.5))
+        XCTAssertEqual(Reel.step(at: 0, in: ranges([10])), .seek(9.5))
+    }
+
+    func testStepEndsAfterTheLastHit() {
+        XCTAssertEqual(Reel.step(at: 80, in: ranges([10, 50])), .end)
+        XCTAssertEqual(Reel.step(at: 0, in: ranges([])), .end)
+    }
+
+    /// Landing a millisecond past a window must not silently skip the next one.
+    func testStepDoesNotSkipAWindowItLandsOnTheEdgeOf() {
+        XCTAssertEqual(Reel.step(at: 11.4, in: ranges([10, 50])), .seek(49.5))
+    }
+
+    func testTotalLengthIsTheSumOfTheMergedPieces() {
+        // 9.5...11.4 merged, not two separate 1.5s windows.
+        XCTAssertEqual(Reel.totalLength(ranges([10, 10.4])), 1.9, accuracy: 0.0001)
+    }
+}
+

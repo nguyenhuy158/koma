@@ -20,12 +20,17 @@ enum Knobs {
     static let onionCount  = Knob(key: "onionCount",  def: 3,   range: 1...6,     step: 1)
     static let hitSense    = Knob(key: "hitSense",    def: 2.5, range: 1.5...6,   step: 0.1)
     static let volume      = Knob(key: "volume",      def: 1,   range: 0...1,     step: 0.05)
+    static let reelBefore  = Knob(key: "reelBefore",  def: 0.5, range: 0.1...3,   step: 0.1)
+    static let reelAfter   = Knob(key: "reelAfter",   def: 1.0, range: 0.2...5,   step: 0.1)
+    static let voiceConf   = Knob(key: "voiceConf",   def: 0.6, range: 0.3...0.95, step: 0.05)
 
-    static let all = [ptsPerFrame, holdRate, smallSeek, bigSeek, hugeSeek, onionCount, hitSense, volume]
+    static let all = [ptsPerFrame, holdRate, smallSeek, bigSeek, hugeSeek, onionCount, hitSense, volume, reelBefore, reelAfter, voiceConf]
 
     // Toggles carry no range, so they stay plain pairs.
     static let haptics   = (key: "haptics",   def: true)
     static let keepAwake = (key: "keepAwake", def: true)
+    // C1-i: off by default — vetoing is the one step that can delete a real hit.
+    static let voiceFilter = (key: "voiceFilter", def: false)
     // Marks are user data, not a setting — reset must never touch this one.
     static let marksStore = (key: "marksStore", def: "{}")
 
@@ -35,6 +40,7 @@ enum Knobs {
         for k in all { d.set(k.def, forKey: k.key) }
         d.set(haptics.def, forKey: haptics.key)
         d.set(keepAwake.def, forKey: keepAwake.key)
+        d.set(voiceFilter.def, forKey: voiceFilter.key)
     }
 }
 
@@ -58,6 +64,12 @@ enum Fmt {
         let m = abs(s), sign = s < 0 ? "−" : "+"
         if m >= 60, m.truncatingRemainder(dividingBy: 60) == 0 { return "\(sign)\(Int(m / 60))m" }
         return m == m.rounded() ? "\(sign)\(Int(m))s" : String(format: "%@%.1fs", sign, m)
+    }
+
+    /// Length of a clip: `1:24`, `12:03`.
+    static func clock(_ s: Double) -> String {
+        let n = Int(max(0, s).rounded())
+        return String(format: "%d:%02d", n / 60, n % 60)
     }
 
     /// Settings row value: `5 min`, `1 sec`, `0.5 sec`.

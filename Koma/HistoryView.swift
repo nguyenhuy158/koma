@@ -20,7 +20,7 @@ struct HistoryView: View {
                 } else {
                     List {
                         ForEach(items) { r in
-                            Button { onPick(r.id); dismiss() } label: { row(r) }
+                            Button { onPick(r.id); dismiss() } label: { RecentRow(r) }
                                 .tint(.primary)
                         }
                         .onDelete { idx in
@@ -35,7 +35,44 @@ struct HistoryView: View {
         }
     }
 
-    private func row(_ r: Recent) -> some View {
+}
+
+/// The last few clips, shown on the empty screen. Getting back to yesterday's rally
+/// should not cost a tap into a sheet — reopening is the common case, not picking new.
+struct RecentStrip: View {
+    @AppStorage(Store.history) private var history = "[]"
+    @AppStorage(Lang.key) private var lang = Lang.en.rawValue
+    var limit = 3
+    let onPick: (String) -> Void
+    let onMore: () -> Void
+
+    var body: some View {
+        let items = HistoryStore.decode(history)
+        if !items.isEmpty {
+            VStack(spacing: 8) {
+                ForEach(items.prefix(limit)) { r in
+                    Button { onPick(r.id) } label: {
+                        RecentRow(r).padding(10)
+                    }
+                    .tint(.primary)
+                    .background(.gray.opacity(0.18), in: RoundedRectangle(cornerRadius: 10))
+                }
+                if items.count > limit {
+                    Button(L("See all")) { onMore() }
+                        .font(.footnote)
+                        .tint(.orange)
+                }
+            }
+            .frame(maxWidth: 420)
+        }
+    }
+}
+
+struct RecentRow: View {
+    let r: Recent
+    init(_ r: Recent) { self.r = r }
+
+    var body: some View {
         HStack(spacing: 12) {
             Thumb(id: r.id)
             VStack(alignment: .leading, spacing: 3) {
@@ -51,7 +88,7 @@ struct HistoryView: View {
         .padding(.vertical, 2)
     }
 
-    private static func when(_ epoch: Double) -> String {
+    static func when(_ epoch: Double) -> String {
         let f = DateFormatter()
         f.dateStyle = .medium
         f.timeStyle = .short

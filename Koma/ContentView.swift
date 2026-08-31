@@ -32,10 +32,14 @@ struct ContentView: View {
     // last one ever presents, which is why Settings and Help did nothing.
     @State private var sheet: Sheet?
     @State private var showVolume = false
+    @State private var reelTask: Task<Void, Never>?
+    @State private var reeling = false
+    @State private var reelProgress = 0.0
+    @State private var hitsOnly = false
     @Environment(\.scenePhase) private var scenePhase
 
     enum Sheet: Identifiable {
-        case help, settings, history, share(UIImage)
+        case help, settings, history, share([Any])
         var id: Int {
             switch self {
             case .help: return 0
@@ -55,6 +59,9 @@ struct ContentView: View {
     @State private var loopB: Double?
     @State private var speed: Double = 1
     @State private var onion = false
+    @State private var skeleton = false
+    @State private var poseImage: UIImage?
+    @State private var poseTask: Task<Void, Never>?
     @State private var ghosts: [UIImage] = []
     @State private var ghostTask: Task<Void, Never>?
     @State private var generator: AVAssetImageGenerator?
@@ -72,6 +79,10 @@ struct ContentView: View {
     @AppStorage(Knobs.marksStore.key)  private var marksStore  = Knobs.marksStore.def
     @AppStorage(Knobs.volume.key)      private var volume      = Knobs.volume.def
     @AppStorage(Store.history)         private var history     = "[]"
+    @AppStorage(Knobs.reelBefore.key)  private var reelBefore  = Knobs.reelBefore.def
+    @AppStorage(Knobs.reelAfter.key)   private var reelAfter   = Knobs.reelAfter.def
+    @AppStorage(Knobs.voiceFilter.key) private var voiceFilter = Knobs.voiceFilter.def
+    @AppStorage(Knobs.voiceConf.key)   private var voiceConf   = Knobs.voiceConf.def
     // Read so the whole screen re-renders when either is changed in Settings.
     @AppStorage(Lang.key)              private var lang        = Lang.en.rawValue
     @AppStorage(Skin.key)              private var skin        = Skin.dark.rawValue
@@ -105,15 +116,22 @@ struct ContentView: View {
             case .help:          HelpView()
             case .settings:      SettingsView()
             case .history:       HistoryView { id in loadTask = Task { await load(id) } }
-            case .share(let im): ActivityView(items: [im])
+            case .share(let items): ActivityView(items: items)
             }
         }
         .onChange(of: current) { _ in scheduleGhosts() }
         .onChange(of: onion) { _ in scheduleGhosts() }
+        .onChange(of: current) { _ in schedulePose() }
+        .onChange(of: skeleton) { _ in schedulePose() }
     }
 
     private var gear: some View {
         HStack(spacing: 14) {
+            if loaded {
+                // Clearing `pick` too, or choosing the same video again fires no change.
+                Button { closeClip(); pick = nil } label: { Image(systemName: "xmark") }
+                    .accessibilityLabel(L("Close video"))
+            }
             Button { sheet = .history } label: { Image(systemName: "clock.arrow.circlepath") }
             Button { sheet = .help } label: { Image(systemName: "questionmark.circle") }
             Button { sheet = .settings } label: { Image(systemName: "slider.horizontal.3") }
@@ -126,6 +144,7 @@ struct ContentView: View {
         GeometryReader { geo in
             PlayerLayerView(player: player)
                 .overlay { ghostOverlay }
+                .overlay { poseOverlay }
                 .scaleEffect(zoom)
                 .offset(pan)
                 .frame(width: geo.size.width, height: geo.size.height)
@@ -149,6 +168,17 @@ struct ContentView: View {
             ForEach(Array(ghosts.enumerated()).reversed(), id: \.offset) { i, img in
                 Image(uiImage: img).resizable().scaledToFit()
                     .opacity(0.5 / Double(i + 2))
+            }
+        }
+        .allowsHitTesting(false)
+    }
+
+    /// Joints on the frozen frame. Same `scaledToFit` as the ghosts, so it lands on the
+    /// video however the frame is letterboxed.
+    private var poseOverlay: some View {
+        Group {
+            if let img = poseImage {
+                Image(uiImage: img).resizable().scaledToFit()
             }
         }
         .allowsHitTesting(false)
@@ -178,17 +208,24 @@ struct ContentView: View {
     }
 
     private var emptyState: some View {
+        // Scrolls: three recents plus the hint is taller than the video box on a small phone.
+        ScrollView {
         VStack(spacing: 12) {
-            Image(systemName: "film.stack").font(.system(size: 52, weight: .light))
+            Image(systemName: "film.stack").font(.system(size: 44, weight: .light))
             Text(L("Load a rally")).font(.title3.weight(.medium))
             Text(problem ?? L("Record at 120 or 240fps — more frames per swing."))
                 .font(.footnote)
                 .foregroundStyle(problem == nil ? .secondary : Color.orange)
                 .multilineTextAlignment(.center)
-            gear.font(.title3).padding(.top, 8)
+            RecentStrip(onPick: { id in loadTask = Task { await load(id) } },
+                        onMore: { sheet = .history })
+                .padding(.top, 4)
+            gear.font(.title3).padding(.top, 4)
         }
         .foregroundStyle(.secondary)
-        .padding(32)
+        .padding(24)
+        .frame(maxWidth: .infinity)
+        }
     }
 
     // MARK: - Readout
@@ -353,17 +390,50 @@ struct ContentView: View {
                 .tint(speed == 1 ? .primary : .orange)
 
                 tool("square.stack.3d.down.right.fill", onion ? .orange : .primary) { onion.toggle() }
-                Button {
-                    analyzing ? analyzeTask?.cancel() : detectHits()
-                } label: {
-                    Group {
-                        if analyzing { Text("\(Int(analyzeProgress * 100))%") }
-                        else if hits.isEmpty { Image(systemName: "waveform") }
-                        else { Text(verbatim: "\(hits.count) \(L("hits"))") }
+                tool("figure.badminton", skeleton ? .green : .primary) { skeleton.toggle() }
+                if hits.isEmpty || analyzing || reeling {
+                    Button {
+                        if reeling { reelTask?.cancel() }
+                        else { analyzing ? analyzeTask?.cancel() : detectHits() }
+                    } label: {
+                        Group {
+                            if reeling { Text(verbatim: "🎬 \(Int(reelProgress * 100))%") }
+                            else if analyzing { Text(verbatim: "\(Int(analyzeProgress * 100))%") }
+                            else { Image(systemName: "waveform") }
+                        }
+                        .frame(maxWidth: .infinity, minHeight: 34)
                     }
-                    .frame(maxWidth: .infinity, minHeight: 34)
+                    .tint(.primary)
+                } else {
+                    Menu {
+                        // Length up front, so you know it's a 40s reel and not a 6-minute one
+                    // before waiting on the export.
+                    Button { makeReel() } label: {
+                        Label {
+                            Text(verbatim: "\(L("Hits-only video")) · \(Fmt.clock(reelLength))")
+                        } icon: {
+                            Image(systemName: "film.stack")
+                        }
+                    }
+                        // The same cuts as the reel, minus the export and the file.
+                        Button {
+                            hitsOnly.toggle()
+                            if hitsOnly { loopA = nil; loopB = nil }
+                        } label: {
+                            Label {
+                                Text(verbatim: "\(L("Play hits only")) · \(Fmt.clock(reelLength))")
+                            } icon: {
+                                Image(systemName: hitsOnly ? "checkmark" : "forward.end.alt.fill")
+                            }
+                        }
+                        Button(L("Find hits again"), systemImage: "waveform") { detectHits() }
+                        Button(L("Clear hits"), systemImage: "xmark", role: .destructive) { hits = []; hitsOnly = false }
+                    } label: {
+                        Text(verbatim: "\(hits.count) \(L("hits"))")
+                            .frame(maxWidth: .infinity, minHeight: 34)
+                    }
+                    .tint(hitsOnly ? .orange : .cyan)
                 }
-                .tint(hits.isEmpty ? .primary : .cyan)
 
                 tool("square.and.arrow.up", .primary) { Task { await exportFrame() } }
             }
@@ -448,25 +518,84 @@ struct ContentView: View {
         }
     }
 
+    /// Only on a still frame: Vision costs ~40ms a frame, which is fine when you have
+    /// stopped to look and pointless while it plays.
+    private func schedulePose() {
+        poseTask?.cancel()
+        guard skeleton, !playing, loaded, let gen = generator else {
+            if poseImage != nil { poseImage = nil }
+            return
+        }
+        let at = current
+        poseTask = Task { @MainActor in
+            let img = await Pose.overlay(from: gen, at: at)
+            if !Task.isCancelled { poseImage = img }
+        }
+    }
+
     private func exportFrame() async {
         guard let gen = generator else { return }
         let at = CMTime(seconds: current, preferredTimescale: 600)
-        if let cg = try? await gen.image(at: at).image { sheet = .share(UIImage(cgImage: cg)) }
+        if let cg = try? await gen.image(at: at).image { sheet = .share([UIImage(cgImage: cg)]) }
     }
 
     private func detectHits() {
         guard let asset = player.currentItem?.asset else { return }
         analyzeTask?.cancel()
         analyzing = true; analyzeProgress = 0
-        let sense = hitSense
+        let sense = hitSense, veto = voiceFilter, conf = voiceConf
         analyzeTask = Task { @MainActor in
-            let found = (try? await Hits.find(in: asset, sensitivity: sense) { p in
+            var found = (try? await Hits.find(in: asset, sensitivity: sense) { p in
                 Task { @MainActor in analyzeProgress = p }
             }) ?? []
+            guard !Task.isCancelled else { analyzing = false; return }
+            // Optional second pass: the amplitude result stands on its own, this only removes.
+            if veto { found = await Voice.keep(found, in: asset, confidence: conf) }
             guard !Task.isCancelled else { analyzing = false; return }
             hits = found
             analyzing = false
             if haptics { UINotificationFeedbackGenerator().notificationOccurred(.success) }
+        }
+    }
+
+    /// How long the hits-only clip would be — same windows the export uses, so the
+    /// number on the menu is the number you get.
+    private var reelRanges: [(start: Double, end: Double)] {
+        Reel.ranges(hits: hits, before: reelBefore, after: reelAfter, duration: duration)
+    }
+
+    private var reelLength: Double {
+        Reel.totalLength(Reel.ranges(hits: hits, before: reelBefore, after: reelAfter,
+                                     duration: duration))
+    }
+
+    /// Cuts the detected hits into one clip. Passthrough export, so the wait is
+    /// mostly copying bytes — but on a 240fps clip that is still not instant.
+    private func makeReel() {
+        guard let asset = player.currentItem?.asset, !hits.isEmpty else { return }
+        let cuts = Reel.ranges(hits: hits, before: reelBefore, after: reelAfter, duration: duration)
+        guard !cuts.isEmpty else { return }
+
+        reelTask?.cancel()
+        reeling = true; reelProgress = 0; problem = nil
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("koma-hits-\(cuts.count).mov")
+        reelTask = Task { @MainActor in
+            do {
+                let comp = try await Reel.compose(asset, cuts)
+                try await Reel.export(comp, to: url) { p in
+                    Task { @MainActor in reelProgress = p }
+                }
+                guard !Task.isCancelled else { reeling = false; return }
+                reeling = false
+                if haptics { UINotificationFeedbackGenerator().notificationOccurred(.success) }
+                sheet = .share([url])
+            } catch is CancellationError {
+                reeling = false
+            } catch {
+                reeling = false
+                problem = error.localizedDescription
+            }
         }
     }
 
@@ -542,7 +671,10 @@ struct ContentView: View {
     }
 
     private func play() {
-        if let a = loopA, let b = loopB, current >= b || current < a { seek(to: a) }
+        if hitsOnly, case .seek(let to) = Reel.step(at: current, in: reelRanges) { seek(to: to) }
+        else if hitsOnly, case .end = Reel.step(at: current, in: reelRanges),
+                let first = reelRanges.first { seek(to: first.start) }
+        else if let a = loopA, let b = loopB, current >= b || current < a { seek(to: a) }
         else if current >= duration - 0.01 { seek(to: 0) }
         player.rate = Float(speed)
     }
@@ -574,6 +706,14 @@ struct ContentView: View {
             if !scrubbing { current = t.seconds }
             // A–B: snap back at B so a rally repeats without touching anything.
             if let a = loopA, let b = loopB, rate != 0, t.seconds >= b { seek(to: a) }
+            // Hits-only: jump the gaps as they come up, so there is no file to export.
+            if hitsOnly, rate != 0 {
+                switch Reel.step(at: t.seconds, in: reelRanges) {
+                case .keepPlaying: break
+                case .seek(let to): seek(to: to)
+                case .end:         player.pause()
+                }
+            }
         }
     }
 
@@ -585,21 +725,29 @@ struct ContentView: View {
     }
 
     /// Takes a Photos local identifier, so the picker and the history list share one path.
-    private func load(_ id: String) async {
-        guard !id.isEmpty else { return }
+    /// Back to the empty screen. Also the front half of opening another clip — one
+    /// teardown, so a path that forgets to stop the analyser cannot exist.
+    private func closeClip() {
+        remember()
         // A previous request left running is the thing that made the next open never arrive.
         cancelLoad()
-        remember()
-
-        // Clear the old clip first — leaving it up made a slow open look like nothing happened.
         player.pause()
         player.replaceCurrentItem(with: nil)
         loaded = false
         current = 0; duration = 0
         zoom = 1; zoomBase = 1; pan = .zero; panBase = .zero; locked = false
-        analyzeTask?.cancel(); ghostTask?.cancel()
-        hits = []; ghosts = []; loopA = nil; loopB = nil
+        analyzeTask?.cancel(); ghostTask?.cancel(); poseTask?.cancel()
+        hits = []; ghosts = []; poseImage = nil; loopA = nil; loopB = nil
         analyzing = false; generator = nil
+        hitsOnly = false
+        marks = []
+        clipID = ""
+    }
+
+    private func load(_ id: String) async {
+        guard !id.isEmpty else { return }
+        // Clear the old clip first — leaving it up made a slow open look like nothing happened.
+        closeClip()
 
         loading = true; problem = nil; progress = 0; elapsed = 0
         let ticker = Task { @MainActor in
