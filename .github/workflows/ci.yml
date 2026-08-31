@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      # Simulator only — no signing, so no secrets needed.
+      - name: Build app
+        run: |
+          xcodebuild build \
+            -scheme Koma \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath dd \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Test
+        run: |
+          xcodebuild test \
+            -scheme KomaTests \
+            -destination 'platform=iOS Simulator,name=iPhone 16' \
+            -derivedDataPath dd \
+            CODE_SIGNING_ALLOWED=NO
