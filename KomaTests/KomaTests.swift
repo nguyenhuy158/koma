@@ -395,3 +395,76 @@ final class ReelTests: XCTestCase {
     }
 }
 
+
+
+// MARK: - Voice spans
+
+final class VoiceTests: XCTestCase {
+    private func eq(_ got: [(Double, Double)], _ want: [(Double, Double)],
+                    _ file: StaticString = #filePath, _ line: UInt = #line) {
+        XCTAssertEqual(got.map(\.0), want.map(\.0), file: file, line: line)
+        XCTAssertEqual(got.map(\.1), want.map(\.1), file: file, line: line)
+    }
+
+    /// A sentence arrives as a run of adjacent classifier windows; one silence, not ten.
+    func testAdjacentWindowsBecomeOneSpan() {
+        eq(Voice.merge([(1.0, 1.5), (1.5, 2.0), (2.0, 2.5)]), [(1.0, 2.5)])
+    }
+
+    func testSeparateUtterancesStaySeparate() {
+        eq(Voice.merge([(1.0, 1.5), (9.0, 9.5)]), [(1.0, 1.5), (9.0, 9.5)])
+    }
+
+    func testGapWithinToleranceCloses() {
+        eq(Voice.merge([(1.0, 1.5), (1.65, 2.0)]), [(1.0, 2.0)])
+        eq(Voice.merge([(1.0, 1.5), (1.9, 2.0)]), [(1.0, 1.5), (1.9, 2.0)])
+    }
+
+    func testUnsortedInputMergesAnyway() {
+        eq(Voice.merge([(9.0, 9.5), (1.0, 1.5), (1.5, 2.0)]), [(1.0, 2.0), (9.0, 9.5)])
+    }
+
+    /// A span swallowed by a longer one must not shorten it.
+    func testNestedSpanDoesNotShortenTheOuterOne() {
+        eq(Voice.merge([(1.0, 5.0), (2.0, 3.0)]), [(1.0, 5.0)])
+    }
+
+    /// The bug that shipped: speech is present but ranked below the room itself,
+    /// so looking only at the top label found nothing and the filter did nothing.
+    func testSpeechCountsEvenWhenItIsNotTheTopLabel() {
+        let labels = [("crowd_noise", 0.71), ("applause", 0.44), ("speech", 0.38)]
+        XCTAssertTrue(Voice.isVoice(labels, confidence: 0.3))
+    }
+
+    func testBelowConfidenceIsNotAVoice() {
+        XCTAssertFalse(Voice.isVoice([("speech", 0.12)], confidence: 0.3))
+    }
+
+    func testCourtSoundsAreNotVoices() {
+        XCTAssertFalse(Voice.isVoice([("inside_large_room", 0.9), ("squeak", 0.5)],
+                                     confidence: 0.3))
+    }
+
+    func testNoLabelsIsNotAVoice() {
+        XCTAssertFalse(Voice.isVoice([], confidence: 0.3))
+    }
+
+    func testNothingToMerge() {
+        XCTAssertTrue(Voice.merge([]).isEmpty)
+    }
+
+    /// No voice found means leave the audio alone — a mix that silences nothing is
+    /// still a mix, and attaching one would be a pointless render pass.
+    func testNoSpansMeansNoMix() async throws {
+        let asset = AVMutableComposition()
+        let track = asset.addMutableTrack(withMediaType: .audio,
+                                          preferredTrackID: kCMPersistentTrackID_Invalid)!
+        XCTAssertNil(Voice.mix(muting: [], on: track))
+        XCTAssertNotNil(Voice.mix(muting: [(1, 2)], on: track))
+    }
+
+    func testSpansOfANonFileAssetAreEmptyRatherThanACrash() async {
+        let spans = await Voice.spans(in: AVMutableComposition(), confidence: 0.6)
+        XCTAssertTrue(spans.isEmpty)
+    }
+}
