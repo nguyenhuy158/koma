@@ -1,7 +1,7 @@
 import SwiftUI
 
 @main
-struct MyAppApp: App {
+struct KomaApp: App {
     var body: some Scene {
         WindowGroup { ContentView() }
     }

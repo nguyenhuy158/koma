@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!-- Koma — kawaii shuttlecock. Flat fills, fat rounded outlines, one face. -->
+  <rect width="1024" height="1024" fill="#FFF1D6"/>
+  <circle cx="512" cy="520" r="392" fill="#FFD9E4"/>
+
+  <g stroke="#33253F" stroke-width="30" stroke-linejoin="round" stroke-linecap="round">
+
+    <!-- motion echoes: it just stepped a frame -->
+    <g stroke-width="26">
+      <path d="M 236 486 L 236 590" stroke="#7ED0C4" opacity="0.9"/>
+      <path d="M 310 452 L 310 624" stroke="#7ED0C4"/>
+    </g>
+
+    <g transform="translate(560 636)">
+      <!-- feather skirt, scalloped -->
+      <path fill="#FFFFFF" d="M -130 30
+        L -240 -286
+        a 60 60 0 0 1 120 0
+        a 60 60 0 0 1 120 0
+        a 60 60 0 0 1 120 0
+        a 60 60 0 0 1 120 0
+        L 130 30 Z"/>
+      <!-- feather seams -->
+      <g stroke-width="22" stroke="#33253F" fill="none">
+        <path d="M -60 24 L -122 -300"/>
+        <path d="M 0 24 L 0 -300"/>
+        <path d="M 60 24 L 122 -300"/>
+      </g>
+      <!-- binding band -->
+      <path fill="#8BC5F5" d="M -152 -92 L 152 -92 L 168 -152 L -168 -152 Z"/>
+
+      <!-- cork head -->
+      <circle cx="0" cy="176" r="150" fill="#FF6B6B"/>
+      <g stroke="none" fill="#33253F">
+        <circle cx="-56" cy="158" r="19"/>
+        <circle cx="56" cy="158" r="19"/>
+      </g>
+      <path d="M -30 214 q 30 30 60 0" fill="none" stroke-width="20"/>
+      <g stroke="none" fill="#FF9EAE">
+        <ellipse cx="-104" cy="200" rx="26" ry="17"/>
+        <ellipse cx="104" cy="200" rx="26" ry="17"/>
+      </g>
+    </g>
+  </g>
+</svg>

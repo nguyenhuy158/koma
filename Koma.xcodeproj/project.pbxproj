@@ -1,0 +1,154 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	objectVersion = 56;
+	objects = {
+
+/* App sources */
+		A1000001 = {isa = PBXBuildFile; fileRef = A1000101; };
+		A1000002 = {isa = PBXBuildFile; fileRef = A1000102; };
+		A1000003 = {isa = PBXBuildFile; fileRef = A1000103; };
+		A1000004 = {isa = PBXBuildFile; fileRef = A1000104; };
+		A1000005 = {isa = PBXBuildFile; fileRef = A1000105; };
+		A1000006 = {isa = PBXBuildFile; fileRef = A1000106; };
+		A1000007 = {isa = PBXBuildFile; fileRef = A1000107; };
+		A1000008 = {isa = PBXBuildFile; fileRef = A1000108; };
+		A1000009 = {isa = PBXBuildFile; fileRef = A1000109; };
+		A100000A = {isa = PBXBuildFile; fileRef = A100010A; };
+
+/* Test sources — the pure files compile into the test bundle, so no TEST_HOST is needed. */
+		A1000201 = {isa = PBXBuildFile; fileRef = A100010B; };
+		A1000202 = {isa = PBXBuildFile; fileRef = A1000103; };
+		A1000203 = {isa = PBXBuildFile; fileRef = A1000104; };
+		A1000204 = {isa = PBXBuildFile; fileRef = A1000105; };
+		A1000205 = {isa = PBXBuildFile; fileRef = A1000109; };
+
+		A1000101 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KomaApp.swift; sourceTree = "<group>"; };
+		A1000102 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		A1000103 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Config.swift; sourceTree = "<group>"; };
+		A1000104 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Marks.swift; sourceTree = "<group>"; };
+		A1000105 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Hits.swift; sourceTree = "<group>"; };
+		A1000106 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		A1000107 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components.swift; sourceTree = "<group>"; };
+		A1000108 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelpView.swift; sourceTree = "<group>"; };
+		A1000109 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Strings.swift; sourceTree = "<group>"; };
+		A100010A = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		A100010B = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KomaTests.swift; sourceTree = "<group>"; };
+
+		A1000013 /* Koma.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Koma.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A1000014 /* KomaTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = KomaTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+
+		A1000020 /* Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+		A1000021 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A1000001, A1000002, A1000003, A1000004, A1000005, A1000006, A1000007, A1000008, A1000009); runOnlyForDeploymentPostprocessing = 0; };
+		A1000022 /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (A100000A); runOnlyForDeploymentPostprocessing = 0; };
+		A1000023 /* Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+		A1000024 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A1000201, A1000202, A1000203, A1000204, A1000205); runOnlyForDeploymentPostprocessing = 0; };
+
+		A1000030 = {isa = PBXGroup; children = (A1000031, A1000033, A1000032); sourceTree = "<group>"; };
+		A1000031 /* Koma */ = {isa = PBXGroup; children = (A1000101, A1000102, A1000103, A1000104, A1000105, A1000106, A1000107, A1000108, A1000109, A100010A); path = Koma; sourceTree = "<group>"; };
+		A1000032 /* Products */ = {isa = PBXGroup; children = (A1000013, A1000014); name = Products; sourceTree = "<group>"; };
+		A1000033 /* KomaTests */ = {isa = PBXGroup; children = (A100010B); path = KomaTests; sourceTree = "<group>"; };
+
+		A1000040 /* Koma */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A1000051;
+			buildPhases = (A1000021, A1000020, A1000022);
+			dependencies = ();
+			name = Koma;
+			productName = Koma;
+			productReference = A1000013;
+			productType = "com.apple.product-type.application";
+		};
+
+		A1000042 /* KomaTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A1000052;
+			buildPhases = (A1000024, A1000023);
+			dependencies = ();
+			name = KomaTests;
+			productName = KomaTests;
+			productReference = A1000014;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+
+		A1000041 /* Project object */ = {
+			isa = PBXProject;
+			attributes = { BuildIndependentTargetsInParallel = 1; LastUpgradeCheck = 1540; };
+			buildConfigurationList = A1000050;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (en, Base);
+			mainGroup = A1000030;
+			productRefGroup = A1000032;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (A1000040, A1000042);
+		};
+
+		A1000050 = {isa = XCConfigurationList; buildConfigurations = (A1000060, A1000061); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+		A1000051 = {isa = XCConfigurationList; buildConfigurations = (A1000062, A1000063); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+		A1000052 = {isa = XCConfigurationList; buildConfigurations = (A1000064, A1000065); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+
+		A1000060 /* Debug */ = {isa = XCBuildConfiguration; buildSettings = {
+			CLANG_ENABLE_MODULES = YES;
+			IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+			ONLY_ACTIVE_ARCH = YES;
+			SDKROOT = iphoneos;
+			SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			SWIFT_VERSION = 5.0;
+		}; name = Debug; };
+		A1000061 /* Release */ = {isa = XCBuildConfiguration; buildSettings = {
+			CLANG_ENABLE_MODULES = YES;
+			IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+			SDKROOT = iphoneos;
+			SWIFT_VERSION = 5.0;
+			VALIDATE_PRODUCT = YES;
+		}; name = Release; };
+		A1000062 /* Debug */ = {isa = XCBuildConfiguration; buildSettings = {
+			ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+			CURRENT_PROJECT_VERSION = 1;
+			MARKETING_VERSION = 1.0;
+			CODE_SIGN_STYLE = Automatic;
+			GENERATE_INFOPLIST_FILE = YES;
+			INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Koma reads your match videos in place so it can step through them frame by frame.";
+			INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+			INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+			PRODUCT_BUNDLE_IDENTIFIER = local.koma;
+			PRODUCT_NAME = Koma;
+			SWIFT_EMIT_LOC_STRINGS = YES;
+			TARGETED_DEVICE_FAMILY = "1,2";
+		}; name = Debug; };
+		A1000063 /* Release */ = {isa = XCBuildConfiguration; buildSettings = {
+			ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+			CURRENT_PROJECT_VERSION = 1;
+			MARKETING_VERSION = 1.0;
+			CODE_SIGN_STYLE = Automatic;
+			GENERATE_INFOPLIST_FILE = YES;
+			INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Koma reads your match videos in place so it can step through them frame by frame.";
+			INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+			INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+			PRODUCT_BUNDLE_IDENTIFIER = local.koma;
+			PRODUCT_NAME = Koma;
+			SWIFT_EMIT_LOC_STRINGS = YES;
+			TARGETED_DEVICE_FAMILY = "1,2";
+		}; name = Release; };
+		A1000064 /* Debug */ = {isa = XCBuildConfiguration; buildSettings = {
+			CODE_SIGN_STYLE = Automatic;
+			GENERATE_INFOPLIST_FILE = YES;
+			PRODUCT_BUNDLE_IDENTIFIER = local.komaTests;
+			PRODUCT_NAME = KomaTests;
+			SWIFT_VERSION = 5.0;
+			TARGETED_DEVICE_FAMILY = "1,2";
+		}; name = Debug; };
+		A1000065 /* Release */ = {isa = XCBuildConfiguration; buildSettings = {
+			CODE_SIGN_STYLE = Automatic;
+			GENERATE_INFOPLIST_FILE = YES;
+			PRODUCT_BUNDLE_IDENTIFIER = local.komaTests;
+			PRODUCT_NAME = KomaTests;
+			SWIFT_VERSION = 5.0;
+			TARGETED_DEVICE_FAMILY = "1,2";
+		}; name = Release; };
+	};
+	rootObject = A1000041;
+}
