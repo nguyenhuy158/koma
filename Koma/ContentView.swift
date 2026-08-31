@@ -62,6 +62,7 @@ struct ContentView: View {
     @State private var skeleton = false
     @State private var poseImage: UIImage?
     @State private var poseTask: Task<Void, Never>?
+    @State private var poseBusy = false
     @State private var ghosts: [UIImage] = []
     @State private var ghostTask: Task<Void, Never>?
     @State private var generator: AVAssetImageGenerator?
@@ -83,6 +84,7 @@ struct ContentView: View {
     @AppStorage(Knobs.reelAfter.key)   private var reelAfter   = Knobs.reelAfter.def
     @AppStorage(Knobs.voiceFilter.key) private var voiceFilter = Knobs.voiceFilter.def
     @AppStorage(Knobs.voiceConf.key)   private var voiceConf   = Knobs.voiceConf.def
+    @AppStorage(Knobs.poseLive.key)    private var poseLive    = Knobs.poseLive.def
     // Read so the whole screen re-renders when either is changed in Settings.
     @AppStorage(Lang.key)              private var lang        = Lang.en.rawValue
     @AppStorage(Skin.key)              private var skin        = Skin.dark.rawValue
@@ -123,6 +125,8 @@ struct ContentView: View {
         .onChange(of: onion) { _ in scheduleGhosts() }
         .onChange(of: current) { _ in schedulePose() }
         .onChange(of: skeleton) { _ in schedulePose() }
+        .onChange(of: rate) { _ in schedulePose() }
+        .onChange(of: poseLive) { _ in schedulePose() }
     }
 
     private var gear: some View {
@@ -390,7 +394,10 @@ struct ContentView: View {
                 .tint(speed == 1 ? .primary : .orange)
 
                 tool("square.stack.3d.down.right.fill", onion ? .orange : .primary) { onion.toggle() }
-                tool("figure.badminton", skeleton ? .green : .primary) { skeleton.toggle() }
+                // Tap: joints on the paused frame. Hold: keep drawing while it plays
+                // (orange), which is slow and lags — same switch as in Settings.
+                tool("figure.badminton", skeleton ? (poseLive ? .orange : .green) : .primary,
+                     hold: { poseLive.toggle(); if poseLive { skeleton = true } }) { skeleton.toggle() }
                 if hits.isEmpty || analyzing || reeling {
                     Button {
                         if reeling { reelTask?.cancel() }
@@ -443,11 +450,15 @@ struct ContentView: View {
         .buttonStyle(.bordered)
     }
 
-    private func tool(_ icon: String, _ tint: Color, _ act: @escaping () -> Void) -> some View {
+    private func tool(_ icon: String, _ tint: Color, hold: (() -> Void)? = nil,
+                      _ act: @escaping () -> Void) -> some View {
         Button(action: act) {
             Image(systemName: icon).frame(maxWidth: .infinity, minHeight: 34)
         }
         .tint(tint)
+        // A long press on the button itself, so the second mode of a tool lives
+        // where the tool is instead of three taps away in Settings.
+        .onLongPressGesture { hold?() }
     }
 
     private func rateLabel(_ s: Double) -> String {
@@ -518,17 +529,29 @@ struct ContentView: View {
         }
     }
 
-    /// Only on a still frame: Vision costs ~40ms a frame, which is fine when you have
-    /// stopped to look and pointless while it plays.
+    /// Paused, this draws the frame you stopped on. Playing, it only runs if the
+    /// user opted in — Vision costs ~27ms a frame against a 60fps picture, so the
+    /// skeleton lags and updates a few times a second. That is the deal, and it is
+    /// off by default.
     private func schedulePose() {
-        poseTask?.cancel()
-        guard skeleton, !playing, loaded, let gen = generator else {
+        guard skeleton, loaded, let gen = generator, poseLive || !playing else {
+            poseTask?.cancel()
             if poseImage != nil { poseImage = nil }
             return
+        }
+        if playing {
+            // Cancelling on every tick would kill each pass before it finished and
+            // draw nothing at all. Let one run to the end and drop the frames that
+            // arrive while it works.
+            guard !poseBusy else { return }
+            poseBusy = true
+        } else {
+            poseTask?.cancel()
         }
         let at = current
         poseTask = Task { @MainActor in
             let img = await Pose.overlay(from: gen, at: at)
+            poseBusy = false
             if !Task.isCancelled { poseImage = img }
         }
     }
@@ -737,6 +760,7 @@ struct ContentView: View {
         current = 0; duration = 0
         zoom = 1; zoomBase = 1; pan = .zero; panBase = .zero; locked = false
         analyzeTask?.cancel(); ghostTask?.cancel(); poseTask?.cancel()
+        poseBusy = false
         hits = []; ghosts = []; poseImage = nil; loopA = nil; loopB = nil
         analyzing = false; generator = nil
         hitsOnly = false

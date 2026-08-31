@@ -31,6 +31,10 @@ enum Knobs {
     static let keepAwake = (key: "keepAwake", def: true)
     // C1-i: off by default — vetoing is the one step that can delete a real hit.
     static let voiceFilter = (key: "voiceFilter", def: false)
+
+    // C1-n: off by default — Vision cannot keep up with 60fps, so this trades
+    // a laggy skeleton for one that exists at all while the video runs.
+    static let poseLive = (key: "poseLive", def: false)
     // Marks are user data, not a setting — reset must never touch this one.
     static let marksStore = (key: "marksStore", def: "{}")
 
@@ -41,6 +45,7 @@ enum Knobs {
         d.set(haptics.def, forKey: haptics.key)
         d.set(keepAwake.def, forKey: keepAwake.key)
         d.set(voiceFilter.def, forKey: voiceFilter.key)
+        d.set(poseLive.def, forKey: poseLive.key)
     }
 }
 

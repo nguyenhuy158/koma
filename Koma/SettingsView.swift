@@ -15,6 +15,7 @@ struct SettingsView: View {
     @AppStorage(Knobs.hitSense.key)    private var hitSense    = Knobs.hitSense.def
     @AppStorage(Knobs.voiceFilter.key) private var voiceFilter = Knobs.voiceFilter.def
     @AppStorage(Knobs.voiceConf.key)   private var voiceConf   = Knobs.voiceConf.def
+    @AppStorage(Knobs.poseLive.key)    private var poseLive    = Knobs.poseLive.def
     @AppStorage(Knobs.haptics.key)     private var haptics     = Knobs.haptics.def
     @AppStorage(Knobs.keepAwake.key)   private var keepAwake   = Knobs.keepAwake.def
     @AppStorage(Knobs.volume.key)      private var volume      = Knobs.volume.def
@@ -66,6 +67,12 @@ struct SettingsView: View {
                     Text(L("Hits-only video"))
                 } footer: {
                     Text(L("How much of the clip to keep around each hit. Windows that overlap are joined, so a fast exchange stays in one piece."))
+                }
+
+                Section {
+                    Toggle(L("Skeleton while playing"), isOn: $poseLive)
+                } footer: {
+                    Text(L("The skeleton normally draws only on a paused frame. Turned on, it also draws while the video runs — but it lags the picture and updates a few times a second, because finding the joints takes longer than a frame."))
                 }
 
                 Section(L("Playback")) {

@@ -17,7 +17,7 @@ struct HelpView: View {
         ("chevron.right.2", "Jump", "Next / previous mark or detected hit."),
         ("repeat", "A–B loop", "Tap once to set A, again for B, again to clear."),
         ("square.stack.3d.down.right.fill", "Onion skin", "Ghosts of the previous frames over the current one — shows the swing path."),
-        ("figure.badminton", "Skeleton", "Draws the body joints on the frozen frame — shoulder, elbow, wrist at the moment of contact. Only while paused."),
+        ("figure.badminton", "Skeleton", "Draws the body joints on the frozen frame — shoulder, elbow, wrist at the moment of contact. Hold it to keep drawing while the video plays (orange), which lags a little."),
         ("waveform", "Find hits", "Scans the audio for racket contacts and drops a jump point on each."),
         ("film.stack", "Hits-only video",
          "Cuts every detected hit into one new clip, back to back — a 20-minute session becomes the shots only. Length of each piece is in Settings."),

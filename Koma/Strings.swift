@@ -156,6 +156,9 @@ private let vietnamese: [String: String] = [
     "Ignore voices runs a second pass that drops hits landing on speech or laughter. It can also drop a real hit if someone shouts during the rally — raise the confidence if that happens.":
         "Bỏ qua tiếng người chạy thêm một lượt nữa, loại các cú đánh rơi vào tiếng nói hay tiếng cười. Nó cũng có thể loại nhầm cú đánh thật nếu có người hét trong pha cầu — khi đó tăng độ tin lên.",
     "Skeleton": "Khung xương",
-    "Draws the body joints on the frozen frame — shoulder, elbow, wrist at the moment of contact. Only while paused.":
-        "Vẽ các khớp lên khung hình đang dừng — vai, khuỷu, cổ tay ngay lúc chạm cầu. Chỉ hiện khi đang tạm dừng.",
+    "Draws the body joints on the frozen frame — shoulder, elbow, wrist at the moment of contact. Hold it to keep drawing while the video plays (orange), which lags a little.":
+        "Vẽ các khớp lên khung hình đang dừng — vai, khuỷu, cổ tay ngay lúc chạm cầu. Nhấn giữ để vẽ cả khi video đang phát (màu cam), hơi trễ một chút.",
+    "Skeleton while playing": "Khung xương khi đang phát",
+    "The skeleton normally draws only on a paused frame. Turned on, it also draws while the video runs — but it lags the picture and updates a few times a second, because finding the joints takes longer than a frame.":
+        "Bình thường khung xương chỉ vẽ trên khung hình đang dừng. Bật lên thì vẽ cả khi video đang chạy — nhưng nó trễ so với hình và mỗi giây chỉ cập nhật vài lần, vì tìm khớp mất nhiều thời gian hơn một khung hình.",
 ]
